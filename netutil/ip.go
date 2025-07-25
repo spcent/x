@@ -70,3 +70,14 @@ func IP2BigInt(IP net.IP) *big.Int {
 	ret.SetBytes(IP)
 	return ret
 }
+
+func GetHostIp() (string, error) {
+	conn, err := net.Dial("udp", "114.114.114.114:80")
+	if err != nil {
+		return "", err
+	}
+	defer conn.Close()
+
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+	return localAddr.IP.String(), nil
+}
