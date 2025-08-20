@@ -36,3 +36,14 @@ func Dequantize(quantized []int8, min, scale float32) []float32 {
 
 	return vec
 }
+
+// Filter helper function
+func Filter[T any](slice []T, test func(T) bool) []T {
+	res := make([]T, 0)
+	for _, value := range slice {
+		if test(value) {
+			res = append(res, value)
+		}
+	}
+	return res
+}

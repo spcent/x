@@ -1,6 +1,7 @@
 package helper
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"strconv"
 	"strings"
@@ -229,4 +230,20 @@ func SnakeToPascal(s string) string {
 	}
 
 	return strings.Join(words, "")
+}
+
+// GenerateRandomString generates a cryptographically random, alphanumeric string of length n.
+func GenerateRandomString(n int) (string, error) {
+	const dictionary = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+	var bytes = make([]byte, n)
+
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+
+	for k, v := range bytes {
+		bytes[k] = dictionary[v%byte(len(dictionary))]
+	}
+
+	return string(bytes), nil
 }

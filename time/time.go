@@ -150,3 +150,13 @@ func (d Duration) Shrink(c context.Context) (Duration, context.Context, context.
 	ctx, cancel := context.WithTimeout(c, xtime.Duration(d))
 	return d, ctx, cancel
 }
+
+func TimeNewest(times ...xtime.Time) xtime.Time {
+	newest := xtime.Time{}
+	for _, t := range times {
+		if t.After(newest) {
+			newest = t
+		}
+	}
+	return newest
+}

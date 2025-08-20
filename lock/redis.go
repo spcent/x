@@ -3,9 +3,8 @@ package lock
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
-
-	"github.com/goravel/framework/facades"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -36,7 +35,7 @@ func (l *RedisLock) Lock(ctx context.Context) (bool, error) {
 	if err == redis.Nil {
 		return false, nil
 	} else if err != nil {
-		facades.Log().Errorf("acquires the lock err, key: %s, err: %s", l.key, err.Error())
+		log.Printf("acquires the lock err, key: %s, err: %s", l.key, err.Error())
 		return false, err
 	}
 	return isSet, nil

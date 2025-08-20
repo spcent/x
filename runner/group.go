@@ -5,11 +5,21 @@
 // from net.Listeners, or scanning input from a closable io.Reader.
 package runner
 
+import (
+	"context"
+	"log"
+	"time"
+)
+
 // Group collects actors (functions) and runs them concurrently.
 // When one actor (function) returns, all actors are interrupted.
 // The zero value of a Group is useful.
 type Group struct {
+	// actors is the list of actors (functions) to run.
 	actors []actor
+	// ShutdownTimeout is the maximum amount of time to wait for all actors to
+	// stop. If zero, the default is 5 seconds.
+	ShutdownTimeout time.Duration
 }
 
 // Add an actor (function) to the group. Each actor must be pre-emptable by an
@@ -47,15 +57,28 @@ func (g *Group) Run() error {
 		a.interrupt(err)
 	}
 
-	// Wait for all actors to stop.
+	if g.ShutdownTimeout == 0 {
+		g.ShutdownTimeout = 5 * time.Second
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), g.ShutdownTimeout)
+	defer cancel()
+
+	// Wait for all actors to stop with timeout control
 	for i := 1; i < cap(errors); i++ {
-		<-errors
+		select {
+		case <-errors:
+		case <-ctx.Done():
+			// Timeout, return the original error.
+			log.Printf("wait remaining actors exit timeout: %v", ctx.Err())
+			return err
+		}
 	}
 
 	// Return the original error.
 	return err
 }
 
+// actor is a function that can be interrupted.
 type actor struct {
 	execute   func() error
 	interrupt func(error)
