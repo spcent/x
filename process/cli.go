@@ -2,96 +2,121 @@ package process
 
 import (
 	"fmt"
-	"log"
 	"math"
+	"os"
 	"time"
+
+	"github.com/spcent/x/logging"
 )
 
 // Cli is the command line client.
 type Cli struct {
-	remoteClient *RemoteClient
+	remoteClient *RemoteClient  // remote client instance
+	log          logging.Logger // logger instance
 }
 
 // NewCli initiates a remote client connecting to dsn.
 // Returns a Cli instance.
-func NewCli(dsn string, timeout time.Duration) (*Cli, error) {
+func NewCli(dsn string, timeout time.Duration, l logging.Logger) (*Cli, error) {
+	if l == nil {
+		l = logging.NewLogAdapter(os.Stdout, logging.InfoLevel)
+	}
+
 	client, err := StartRemoteClient(dsn, timeout)
 	if err != nil {
-		log.Printf("Failed to start remote client due to: %+v\n", err)
+		l.Errorf("Failed to start remote client due to: %+v, dsn: %s", err, dsn)
 		return nil, err
 	}
+
 	return &Cli{
 		remoteClient: client,
+		log:          l,
 	}, nil
 }
 
 // Save will save all previously saved processes onto a list.
 // Display an error in case there's any.
-func (cli *Cli) Save() {
+func (cli *Cli) Save() error {
 	err := cli.remoteClient.Save()
 	if err != nil {
-		log.Fatalf("Failed to save list of processes due to: %+v\n", err)
+		cli.log.Errorf("Failed to save list of processes due to: %+v", err)
+		return err
 	}
+	return nil
 }
 
 // Resurrect will restore all previously save processes.
 // Display an error in case there's any.
-func (cli *Cli) Resurrect() {
+func (cli *Cli) Resurrect() error {
 	err := cli.remoteClient.Resurrect()
 	if err != nil {
-		log.Fatalf("Failed to resurrect all previously save processes due to: %+v\n", err)
+		cli.log.Errorf("Failed to resurrect all previously save processes due to: %+v", err)
+		return err
 	}
+	return nil
 }
 
 // StartGoBin will try to start a go binary process.
 // Returns a fatal error in case there's any.
-func (cli *Cli) StartGoBin(sourcePath string, name string, keepAlive bool, args []string) {
+func (cli *Cli) StartGoBin(sourcePath string, name string, keepAlive bool, args []string) error {
 	err := cli.remoteClient.StartGoBin(sourcePath, name, keepAlive, args)
 	if err != nil {
-		log.Fatalf("Failed to start go bin due to: %+v\n", err)
+		cli.log.Errorf("Failed to start go bin due to: %+v", err)
+		return err
 	}
+	return nil
 }
 
 // RestartProcess will try to restart a process with procName. Note that this process
 // must have been already started through StartGoBin.
-func (cli *Cli) RestartProcess(procName string) {
+func (cli *Cli) RestartProcess(procName string) error {
 	err := cli.remoteClient.RestartProcess(procName)
 	if err != nil {
-		log.Fatalf("Failed to restart process due to: %+v\n", err)
+		cli.log.Errorf("Failed to restart process due to: %+v, name: %s", err, procName)
+		return err
 	}
+	return nil
 }
 
 // StartProcess will try to start a process with procName. Note that this process
 // must have been already started through StartGoBin.
-func (cli *Cli) StartProcess(procName string) {
+func (cli *Cli) StartProcess(procName string) error {
 	err := cli.remoteClient.StartProcess(procName)
 	if err != nil {
-		log.Fatalf("Failed to start process due to: %+v\n", err)
+		cli.log.Errorf("Failed to start process due to: %+v, name: %s", err, procName)
+		return err
 	}
+	return nil
 }
 
 // StopProcess will try to stop a process named procName.
-func (cli *Cli) StopProcess(procName string) {
+func (cli *Cli) StopProcess(procName string) error {
 	err := cli.remoteClient.StopProcess(procName)
 	if err != nil {
-		log.Fatalf("Failed to stop process due to: %+v\n", err)
+		cli.log.Errorf("Failed to stop process due to: %+v, name: %s", err, procName)
+		return err
 	}
+	return nil
 }
 
 // DeleteProcess will stop and delete all dependencies from process procName forever.
-func (cli *Cli) DeleteProcess(procName string) {
+func (cli *Cli) DeleteProcess(procName string) error {
 	err := cli.remoteClient.DeleteProcess(procName)
 	if err != nil {
-		log.Fatalf("Failed to delete process due to: %+v\n", err)
+		cli.log.Errorf("Failed to delete process due to: %+v, name: %s", err, procName)
+		return err
 	}
+	return nil
 }
 
 // Status will display the status of all procs started through StartGoBin.
-func (cli *Cli) Status() {
+func (cli *Cli) Status() error {
 	procResponse, err := cli.remoteClient.MonitStatus()
 	if err != nil {
-		log.Fatalf("Failed to get status due to: %+v\n", err)
+		cli.log.Errorf("Failed to get status due to: %+v", err)
+		return err
 	}
+
 	maxName := 0
 	for id := range procResponse.Procs {
 		proc := procResponse.Procs[id]
@@ -122,6 +147,7 @@ func (cli *Cli) Status() {
 			PadString(kp, 15))
 	}
 	fmt.Println(topBar)
+	return nil
 }
 
 // PadString will add totalSize spaces evenly to the right and left side of str.

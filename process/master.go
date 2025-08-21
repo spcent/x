@@ -183,14 +183,17 @@ func (master *Master) Prepare(sourcePath string, name string, language string, k
 func (master *Master) RunPreparable(procPreparable ProcPreparable) error {
 	master.Lock()
 	defer master.Unlock()
+
 	if _, ok := master.Procs[procPreparable.Identifier()]; ok {
 		log.Printf("Proc %s already exist.", procPreparable.Identifier())
-		return errors.New("Trying to start a process that already exist.")
+		return errors.New("trying to start a process that already exist")
 	}
+
 	proc, err := procPreparable.Start()
 	if err != nil {
 		return err
 	}
+
 	master.Procs[proc.Identifier()] = proc
 	master.saveProcsWrapper()
 	master.Watcher.AddProcWatcher(proc)
@@ -223,7 +226,7 @@ func (master *Master) StartProcess(name string) error {
 	if proc, ok := master.Procs[name]; ok {
 		return master.start(proc)
 	}
-	return errors.New("Unknown process.")
+	return errors.New("unknown process")
 }
 
 // StopProcess will stop a process with the given name.
@@ -233,13 +236,15 @@ func (master *Master) StopProcess(name string) error {
 	if proc, ok := master.Procs[name]; ok {
 		return master.stop(proc)
 	}
-	return errors.New("Unknown process.")
+
+	return errors.New("unknown process")
 }
 
 // DeleteProcess will delete a process and all its files and childs forever.
 func (master *Master) DeleteProcess(name string) error {
 	master.Lock()
 	defer master.Unlock()
+
 	log.Printf("Trying to delete proc %s", name)
 	if proc, ok := master.Procs[name]; ok {
 		err := master.stop(proc)
@@ -261,6 +266,7 @@ func (master *Master) DeleteProcess(name string) error {
 func (master *Master) Revive() error {
 	master.Lock()
 	defer master.Unlock()
+
 	procs := master.ListProcs()
 	log.Printf("Reviving all processes")
 	for id := range procs {
@@ -272,9 +278,10 @@ func (master *Master) Revive() error {
 		log.Printf("Reviving proc %s", proc.Identifier())
 		err := master.start(proc)
 		if err != nil {
-			return fmt.Errorf("Failed to revive proc %s due to %s", proc.Identifier(), err)
+			return fmt.Errorf("failed to revive proc %s due to %s", proc.Identifier(), err)
 		}
 	}
+
 	return nil
 }
 
@@ -285,6 +292,7 @@ func (master *Master) start(proc ProcContainer) error {
 		if err != nil {
 			return err
 		}
+
 		master.Watcher.AddProcWatcher(proc)
 		proc.SetStatus("running")
 	}
@@ -310,6 +318,7 @@ func (master *Master) stop(proc ProcContainer) error {
 		}
 		log.Printf("Proc %s successfully stopped.", proc.Identifier())
 	}
+
 	return nil
 }
 
@@ -342,6 +351,7 @@ func (master *Master) restart(proc ProcContainer) error {
 	if err != nil {
 		return err
 	}
+
 	return master.start(proc)
 }
 
@@ -374,6 +384,7 @@ func (master *Master) Stop() error {
 func (master *Master) SaveProcs() error {
 	master.Lock()
 	defer master.Unlock()
+
 	return master.saveProcsWrapper()
 }
 
