@@ -6,16 +6,34 @@ import (
 	"testing"
 	"time"
 
+	miniredis "github.com/alicebob/miniredis/v2"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/spcent/x/redis"
 )
 
+// _redisClient redis 客户端
+var _redisClient *redis.Client
+
+// InitTestRedis 实例化一个可以用于单元测试的redis
+func InitTestRedis() {
+	mr, err := miniredis.Run()
+	if err != nil {
+		panic(err)
+	}
+	// 打开下面命令可以测试链接关闭的情况
+	// defer mr.Close()
+
+	_redisClient = redis.NewClient(&redis.Options{
+		Addr: mr.Addr(),
+	})
+	fmt.Println("mini redis addr:", mr.Addr())
+}
+
 func TestLockWithDefaultTimeout(t *testing.T) {
-	redis.InitTestRedis()
+	InitTestRedis()
 	expiration := 2 * time.Second
 
-	lock := NewRedisLock(redis.RedisClient, "lock1", expiration)
+	lock := NewRedisLock(_redisClient, "lock1", expiration)
 	ok, err := lock.Lock(context.Background())
 	if err != nil {
 		t.Error(err)
@@ -36,12 +54,12 @@ func TestLockWithDefaultTimeout(t *testing.T) {
 }
 
 func TestLockWithTimeout(t *testing.T) {
-	redis.InitTestRedis()
+	InitTestRedis()
 	expiration := 2 * time.Second
 
 	t.Run("should lock/unlock success", func(t *testing.T) {
 		ctx := context.Background()
-		lock1 := NewRedisLock(redis.RedisClient, "lock2", expiration)
+		lock1 := NewRedisLock(_redisClient, "lock2", expiration)
 		ok, err := lock1.Lock(ctx)
 		assert.Nil(t, err)
 		assert.True(t, ok)
@@ -53,7 +71,7 @@ func TestLockWithTimeout(t *testing.T) {
 
 	t.Run("should unlock failed", func(t *testing.T) {
 		ctx := context.Background()
-		lock2 := NewRedisLock(redis.RedisClient, "lock3", expiration)
+		lock2 := NewRedisLock(_redisClient, "lock3", expiration)
 		ok, err := lock2.Lock(ctx)
 		assert.Nil(t, err)
 		assert.True(t, ok)
